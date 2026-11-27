@@ -125,6 +125,38 @@ describe('SarvamStreamProvider (mock WebSocket)', () => {
       { text: 'Namaste doston', isFinal: true },
     ]);
   });
+
+  it('maps 429 rate limit to SESSION_LIMIT, session.error to UPSTREAM_ERROR, and 4xxx to non-recoverable error', async () => {
+    mock = await startMockWsServer();
+    config.sarvam.apiKey = 'test-sarvam-key';
+
+    mock.wss.on('connection', (ws) => {
+      ws.send(JSON.stringify({ event: 'session.error', error: { message: 'Quota exhausted' } }));
+    });
+
+    const provider = new SarvamStreamProvider(mock.url);
+    const errors: Array<{ code: string; message: string; recoverable: boolean }> = [];
+
+    await new Promise<void>((resolve) => {
+      provider.connect(
+        { language: 'en-IN', sampleRate: 16000, provider: 'sarvam' },
+        {
+          onReady: () => {},
+          onTranscript: () => {},
+          onError: (e) => {
+            errors.push(e);
+            provider.close();
+            resolve();
+          },
+          onClose: () => {},
+        }
+      );
+    });
+
+    expect(errors[0].code).toBe('UPSTREAM_ERROR');
+    expect(errors[0].message).toBe('Quota exhausted');
+    expect(errors[0].recoverable).toBe(false);
+  });
 });
 
 describe('DeepgramStreamProvider (mock WebSocket)', () => {

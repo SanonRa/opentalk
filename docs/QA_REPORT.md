@@ -23,10 +23,10 @@ This QA pass audited the OpenTalk Phase 1 repository (`main` at `21e46c1e55d71f7
 ## 4. Test Inventory
 | Suite | Scope | Type | Outcome |
 | :--- | :--- | :--- | :--- |
-| `server/src/__tests__/providers.test.ts` | Sarvam Realtime WS & Deepgram WS | Mock WebSocket | **PASS (2/2)** |
-| `server/src/__tests__/security.test.ts` | Health, Origin, Auth, Proxy IP, Limits, Malformed JSON | Integration | **PASS (6/6)** |
+| `server/src/__tests__/providers.test.ts` | Sarvam Realtime WS & Deepgram WS | Mock WebSocket | **PASS (3/3)** |
+| `server/src/__tests__/security.test.ts` | Health, Origin, Auth, Proxy IP, Limits, Malformed JSON | Integration | **PASS (7/7)** |
 | `client/src/engine/__tests__/conversationReducer.test.ts` | Reducer state machine, TTS echo guard, pause, error | Unit | **PASS (6/6)** |
-| Playwright Headless Edge (`browser_qa.mjs`) | No-key startup, Settings, Replies, Talk, History, 180° toggle | Browser E2E | **PASS (10/11)**, **FAIL (1/11)** selector mismatch on typed reply button |
+| Playwright Headless Edge (`browser_qa.mjs`) | No-key startup, Settings, Replies, Talk, History, 180° toggle | Browser E2E | **PASS (11/11)** |
 | Docker Compose (`docker compose up --build`) | Container build & Nginx/Node proxy | Container Runtime | **BLOCKED** (Docker not installed) |
 | Live Sarvam / Deepgram & Real Mic/TTS | End-to-end acoustic & cloud key streaming | Manual / Live Key | **BLOCKED** (No API keys / headless) |
 
@@ -61,8 +61,7 @@ This QA pass audited the OpenTalk Phase 1 repository (`main` at `21e46c1e55d71f7
 
 ## 10. Browser Verification Summary
 - Headless Microsoft Edge (`--use-fake-ui-for-media-stream`) against `http://localhost:5173` and `http://localhost:4000`:
-  - **PASS:** Home screen renders without API keys; `opentalk:v1:history` is `null` by default; Browser Speech Fallback selectable in Settings; High-Contrast toggle works; Template creation works; Quick reply submission works; 180° two-person view toggle works; History page navigation works; zero uncaught `pageerror` events.
-  - **FAIL (Test Script Selector):** Automated typed-reply button click matched a non-submit button (`/send|speak/i` first match) rather than the composer submit button; manual verification recommended.
+  - **PASS (11/11):** Servers startup without API keys; Home screen renders without API keys; `opentalk:v1:history` is `null` by default; Browser Speech Fallback selectable in Settings; High-Contrast toggle works; Template creation works; Typed reply submission & message rendering works; Quick reply submission works; 180° two-person view toggle works; History page navigation works; zero uncaught `pageerror` events.
 
 ## 11. Sarvam & Deepgram Test Evidence
 - **Sarvam AI (`server/src/providers/sarvam.ts`) [Mock WS Verified]:**

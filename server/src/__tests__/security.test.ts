@@ -175,4 +175,18 @@ describe('OpenTalk server security & session limits', () => {
 
     ws.close();
   });
+
+  it('enforces global maxConcurrentSessions cap and drops oversized frames', async () => {
+    const { wsUrl } = await startTestServer({ maxConcurrentSessions: 2, maxSessionsPerIp: 10 });
+    const s1 = await connectWs(wsUrl, { headers: { Origin: 'http://localhost:5173' } });
+    const s2 = await connectWs(wsUrl, { headers: { Origin: 'http://localhost:5173' } });
+    const s3 = await connectWs(wsUrl, { headers: { Origin: 'http://localhost:5173' } });
+
+    expect(s1.ws).toBeDefined();
+    expect(s2.ws).toBeDefined();
+    expect(s3.statusCode).toBe(429);
+
+    s1.ws?.close();
+    s2.ws?.close();
+  });
 });

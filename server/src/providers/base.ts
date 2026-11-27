@@ -7,7 +7,7 @@ export interface ServerAsrProviderCallbacks {
   onTranscript: (payload: TranscriptPayload) => void;
   onVad?: (signal: 'speech_start' | 'speech_end') => void;
   onError: (error: {
-    code: 'AUTH_FAILED' | 'UPSTREAM_ERROR';
+    code: 'AUTH_FAILED' | 'UPSTREAM_ERROR' | 'SESSION_LIMIT';
     message: string;
     recoverable: boolean;
   }) => void;

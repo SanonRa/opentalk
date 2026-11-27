@@ -181,11 +181,14 @@ export class SarvamStreamProvider implements ServerAsrStreamProvider {
     this.socket.on('unexpected-response', (_req, res) => {
       const status = res.statusCode ?? 0;
       const isAuth = status === 401 || status === 403;
+      const isRateLimit = status === 429;
       callbacks.onError({
-        code: isAuth ? 'AUTH_FAILED' : 'UPSTREAM_ERROR',
+        code: isAuth ? 'AUTH_FAILED' : isRateLimit ? 'SESSION_LIMIT' : 'UPSTREAM_ERROR',
         message: isAuth
           ? 'Sarvam AI rejected the API subscription key (HTTP 401/403). Verify SARVAM_API_KEY on the server.'
-          : `Sarvam AI handshake failed with HTTP ${status}.`,
+          : isRateLimit
+            ? 'Sarvam AI rate limit or concurrent session quota exceeded (HTTP 429).'
+            : `Sarvam AI handshake failed with HTTP ${status}.`,
         recoverable: !isAuth,
       });
     });
@@ -207,6 +210,12 @@ export class SarvamStreamProvider implements ServerAsrStreamProvider {
           code: 'UPSTREAM_ERROR',
           message: `Sarvam AI closed stream with code ${code}: ${reason || 'Invalid connection parameters.'}`,
           recoverable: false,
+        });
+      } else if (!this.isClosing && code !== 1000) {
+        callbacks.onError({
+          code: 'UPSTREAM_ERROR',
+          message: `Sarvam AI stream closed unexpectedly with code ${code}: ${reason || 'Connection lost.'}`,
+          recoverable: true,
         });
       }
       callbacks.onClose(code, reason);
@@ -231,6 +240,9 @@ export class SarvamStreamProvider implements ServerAsrStreamProvider {
     this.isClosing = true;
     if (!this.socket) return;
     try {
+      if (this.socket.readyState === WebSocket.OPEN) {
+        this.socket.send(JSON.stringify({ event: 'flush' }));
+      }
       this.socket.close(1000, 'Session closed by user');
     } catch {
       // Ignore close errors
