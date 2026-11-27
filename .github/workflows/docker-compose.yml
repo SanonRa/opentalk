@@ -1,0 +1,129 @@
+name: Docker Compose Verification
+
+on:
+  push:
+    branches:
+      - 'phase2/**'
+      - 'qa/**'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  docker-compose-verification:
+    name: Build & Verify Docker Compose (No Secrets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Display Docker & Compose Environment
+        run: |
+          docker --version
+          docker compose version
+
+      - name: Validate Docker Compose Configuration (No .env)
+        run: |
+          echo "Validating docker-compose.yml configuration without secrets..."
+          docker compose config --quiet
+
+      - name: Build Docker Services
+        run: |
+          echo "Building client and server containers..."
+          docker compose build
+
+      - name: Start Services in Detached Mode
+        run: |
+          echo "Starting containers without cloud API keys..."
+          docker compose up -d
+
+      - name: Verify Container Health & Status
+        run: |
+          echo "Waiting up to 60s for containers to reach healthy status..."
+          for i in {1..30}; do
+            SERVER_STATUS=$(docker inspect --format='{{json .State.Health.Status}}' opentalk-server 2>/dev/null || echo '"unknown"')
+            CLIENT_STATUS=$(docker inspect --format='{{json .State.Status}}' opentalk-client 2>/dev/null || echo '"unknown"')
+            echo "Attempt $i: opentalk-server health=$SERVER_STATUS, opentalk-client status=$CLIENT_STATUS"
+            if [ "$SERVER_STATUS" = '"healthy"' ] && [ "$CLIENT_STATUS" = '"running"' ]; then
+              echo "Containers are up and healthy!"
+              break
+            fi
+            sleep 2
+          done
+
+          docker compose ps
+
+          FINAL_HEALTH=$(docker inspect --format='{{json .State.Health.Status}}' opentalk-server)
+          if [ "$FINAL_HEALTH" != '"healthy"' ]; then
+            echo "Error: opentalk-server failed health check ($FINAL_HEALTH)"
+            docker compose logs
+            exit 1
+          fi
+
+      - name: Verify Frontend HTTP Endpoint (Port 8080)
+        run: |
+          echo "Testing frontend root endpoint on http://localhost:8080..."
+          FRONTEND_RESP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/)
+          echo "Frontend response HTTP status: $FRONTEND_RESP"
+          if [ "$FRONTEND_RESP" != "200" ]; then
+            echo "Error: Expected HTTP 200 from frontend, got $FRONTEND_RESP"
+            exit 1
+          fi
+
+          echo "Verifying HTML title and payload content..."
+          FRONTEND_HTML=$(curl -s http://localhost:8080/)
+          if ! echo "$FRONTEND_HTML" | grep -q "OpenTalk"; then
+            echo "Error: HTML did not contain 'OpenTalk'"
+            exit 1
+          fi
+          echo "Frontend successfully serving OpenTalk single-page app."
+
+      - name: Verify Backend Health Endpoint via Reverse Proxy (Port 8080) & Direct (Port 4000)
+        run: |
+          echo "Testing /api/health via Nginx reverse proxy (http://localhost:8080/api/health)..."
+          PROXY_HEALTH=$(curl -s http://localhost:8080/api/health)
+          echo "Proxy health response: $PROXY_HEALTH"
+          if ! echo "$PROXY_HEALTH" | grep -q '"status":"ok"'; then
+            echo "Error: /api/health via reverse proxy did not return ok status"
+            exit 1
+          fi
+
+          echo "Testing /api/health directly on loopback (http://127.0.0.1:4000/api/health)..."
+          DIRECT_HEALTH=$(curl -s http://127.0.0.1:4000/api/health)
+          echo "Direct health response: $DIRECT_HEALTH"
+          if ! echo "$DIRECT_HEALTH" | grep -q '"status":"ok"'; then
+            echo "Error: /api/health direct did not return ok status"
+            exit 1
+          fi
+
+      - name: Verify Provider Availability (/api/providers) Reports Unconfigured State
+        run: |
+          echo "Checking /api/providers via reverse proxy..."
+          PROVIDERS_JSON=$(curl -s http://localhost:8080/api/providers)
+          echo "Providers response: $PROVIDERS_JSON"
+
+          if ! echo "$PROVIDERS_JSON" | grep -q '"anyCloudConfigured":false'; then
+            echo "Error: Expected anyCloudConfigured:false when running without API keys"
+            exit 1
+          fi
+
+          if ! echo "$PROVIDERS_JSON" | grep -q '"defaultProvider":null'; then
+            echo "Error: Expected defaultProvider:null when running without API keys"
+            exit 1
+          fi
+          echo "Verified: App starts without secrets, and reports unconfigured cloud providers cleanly."
+
+      - name: Dump Logs on Failure
+        if: failure()
+        run: |
+          echo "=== Docker Compose Container Logs ==="
+          docker compose logs --tail=100
+
+      - name: Clean Shutdown
+        if: always()
+        run: |
+          echo "Shutting down Docker Compose services..."
+          docker compose down --volumes --remove-orphans
