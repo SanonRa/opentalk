@@ -1,0 +1,73 @@
+/* Copyright (c) 2026. All rights reserved. */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-size: 16px;
+  }
+
+  html[data-ui-text-size='large'] {
+    font-size: 18px;
+  }
+
+  html[data-ui-text-size='xlarge'] {
+    font-size: 20px;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+    font-family: Inter, 'Noto Sans', 'Noto Sans Devanagari', system-ui, -apple-system, sans-serif;
+  }
+
+  /* High-contrast accessibility overrides */
+  html.high-contrast body {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+  }
+
+  html.high-contrast .hc-surface {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border-color: #facc15 !important;
+    border-width: 2px !important;
+  }
+
+  html.high-contrast .hc-card {
+    background-color: #0a0a0a !important;
+    color: #ffffff !important;
+    border-color: #ffffff !important;
+    border-width: 2px !important;
+  }
+
+  html.high-contrast .hc-accent-btn {
+    background-color: #facc15 !important;
+    color: #000000 !important;
+    border-color: #ffffff !important;
+    border-width: 2px !important;
+    font-weight: 700 !important;
+  }
+
+  *:focus-visible {
+    outline: 3px solid #38bdf8;
+    outline-offset: 2px;
+  }
+
+  html.high-contrast *:focus-visible {
+    outline: 3px solid #facc15;
+    outline-offset: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

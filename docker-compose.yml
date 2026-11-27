@@ -1,0 +1,46 @@
+# Copyright (c) 2026. All rights reserved.
+#
+# OpenTalk Docker Compose Configuration
+# Start with: docker compose up --build
+# The application starts cleanly even when .env or cloud API keys are absent.
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: opentalk-server
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 4000
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-http://localhost:8080}
+      ASR_DEFAULT_PROVIDER: ${ASR_DEFAULT_PROVIDER:-auto}
+      SARVAM_API_KEY: ${SARVAM_API_KEY:-}
+      SARVAM_STT_MODEL: ${SARVAM_STT_MODEL:-saaras:v4}
+      SARVAM_STT_MODE: ${SARVAM_STT_MODE:-transcribe}
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY:-}
+      DEEPGRAM_STT_MODEL: ${DEEPGRAM_STT_MODEL:-nova-3}
+      DEEPGRAM_ENDPOINTING_MS: ${DEEPGRAM_ENDPOINTING_MS:-400}
+      ASR_MAX_SESSION_SECONDS: ${ASR_MAX_SESSION_SECONDS:-1800}
+      WS_HEARTBEAT_MS: ${WS_HEARTBEAT_MS:-25000}
+    ports:
+      - "${OPENTALK_API_PORT:-4000}:4000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: opentalk-client
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_healthy
+    ports:
+      - "${OPENTALK_WEB_PORT:-8080}:80"
