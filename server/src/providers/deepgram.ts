@@ -41,6 +41,11 @@ export class DeepgramStreamProvider implements ServerAsrStreamProvider {
   private socket: WebSocket | null = null;
   private keepAliveTimer: NodeJS.Timeout | null = null;
   private isClosing = false;
+  private readonly endpointBaseUrl: string;
+
+  constructor(endpointBaseUrl = 'wss://api.deepgram.com/v1/listen') {
+    this.endpointBaseUrl = endpointBaseUrl;
+  }
 
   public connect(options: StreamStartOptions, callbacks: ServerAsrProviderCallbacks): void {
     this.isClosing = false;
@@ -59,7 +64,7 @@ export class DeepgramStreamProvider implements ServerAsrStreamProvider {
       endpointing: String(config.deepgram.endpointingMs),
     });
 
-    const url = `wss://api.deepgram.com/v1/listen?${params.toString()}`;
+    const url = `${this.endpointBaseUrl}?${params.toString()}`;
 
     this.socket = new WebSocket(url, {
       headers: {

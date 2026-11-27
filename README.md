@@ -77,6 +77,11 @@ Copy `.env.example` to `.env` to configure cloud speech-to-text providers. All A
 | `DEEPGRAM_ENDPOINTING_MS` | No | `400` | Silence window (ms) before finalizing an utterance |
 | `OPENTALK_WEB_PORT` | No | `8080` | Host port mapped to the Nginx frontend container |
 | `OPENTALK_API_PORT` | No | `4000` | Host port mapped to the Node.js backend container |
+| `WS_AUTH_TOKEN` | No | *(empty)* | Optional shared token for `/ws/transcribe` (via `Sec-WebSocket-Protocol: opentalk-token.<token>`, `?token=`, or `Authorization: Bearer`) |
+| `MAX_CONCURRENT_SESSIONS` | No | `10` | Maximum concurrent WebSocket transcription sessions |
+| `MAX_SESSIONS_PER_IP` | No | `3` | Maximum concurrent WebSocket sessions per client IP |
+| `TRUST_PROXY` | No | `false` (`true` in Docker) | Honour `X-Real-IP` / `X-Forwarded-For` behind a trusted reverse proxy |
+| `WS_ALLOW_NO_ORIGIN` | No | `false` | Require `Origin` header on WebSocket upgrades unless set `true` |
 
 ---
 
@@ -86,7 +91,7 @@ Only the backend reads API keys, and only when cloud ASR streaming is activated:
 
 1. `.env` (created locally from `.env.example`) — stores `SARVAM_API_KEY` and/or `DEEPGRAM_API_KEY`.
 2. `server/src/config.ts` — loads `SARVAM_API_KEY` and `DEEPGRAM_API_KEY` from environment variables.
-3. `server/src/providers/sarvam.ts` — authenticates `wss://api.sarvam.ai/speech-to-text/ws` via the `api-subscription-key` header.
+3. `server/src/providers/sarvam.ts` — authenticates `wss://api.sarvam.ai/speech-to-text-realtime/ws` via the `Api-Subscription-Key` header.
 4. `server/src/providers/deepgram.ts` — authenticates `wss://api.deepgram.com/v1/listen` via the `Authorization: Token <key>` header.
 5. `server/src/providers/registry.ts` — reports boolean `configured` flags to `/api/providers` (never returns key values).
 
@@ -108,13 +113,15 @@ Only the backend reads API keys, and only when cloud ASR streaming is activated:
 
 ---
 
-## Incomplete Features & Known Limitations
+## Verification Status & Known Limitations
 
-- **Runtime & Build Verification**: This archive was assembled in an offline sandbox without outbound npm registry or Docker daemon access. `npm install`, `tsc`, `vite build`, and `docker compose up --build` have **not** been executed in this environment; `package-lock.json` files will be generated when running `npm install` locally.
+- **Verified in QA (`qa/hardening-nov2026`)**: `npm ci`, `npm run typecheck`, `npm run build`, `npm audit` (0 vulnerabilities), Vitest unit tests (`conversationReducer`), Vitest mock WebSocket protocol tests (`SarvamStreamProvider`, `DeepgramStreamProvider`), WebSocket security/proxy/limit integration tests, no-API-key backend health/providers check, and headless Edge Playwright UI smoke tests.
+- **Not Verified in QA Environment**:
+  - **Docker Compose**: Docker Engine / Docker Desktop was not installed on the QA machine; `docker compose config` and `docker compose up --build` must be run in an environment with Docker installed.
+  - **Live Cloud ASR**: Live round-trip audio streaming with real `SARVAM_API_KEY` / `DEEPGRAM_API_KEY` credentials has not been executed (verified via mock WebSocket servers only).
+  - **Manual Real-Speech Mic & TTS**: End-to-end acoustic testing with a physical microphone and speaker in Chrome/Edge requires manual human verification.
 - **Audio Capture API**: `MicrophoneCapture.ts` uses `ScriptProcessorNode` for broad zero-bundler-config compatibility; migrating to `AudioWorkletNode` is recommended for Phase 2 to reduce main-thread audio jitter on low-end mobile devices.
 - **Browser Speech Fallback Limitations**: `WebSpeechAsrProvider` depends on the browser's `SpeechRecognition` / `webkitSpeechRecognition` API (best supported in Chrome/Edge; unsupported in Firefox) and typically routes audio to the browser vendor's cloud servers, requiring an internet connection.
-- **Cloud Provider Protocol Verification**: Both `SarvamStreamProvider` and `DeepgramStreamProvider` were implemented directly against their November 2026 official WebSocket documentation, but live audio round-trip testing requires valid developer API keys.
-- **No Automated Test Suite Yet**: Unit tests for `conversationReducer` and integration tests for `TranscriptionSession` are planned for Phase 2.
 - **No End-to-End Encryption or On-Device ASR**: When cloud ASR is active, live audio is streamed over TLS (`wss://`) to the configured cloud provider; OpenTalk does not claim on-device processing or end-to-end encryption for cloud streams.
 
 ---

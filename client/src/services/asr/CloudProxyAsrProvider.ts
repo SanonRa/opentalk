@@ -38,6 +38,22 @@ function getWebSocketUrl(): string {
   return `${protocol}//${window.location.host}/ws/transcribe`;
 }
 
+function getWebSocketProtocols(): string[] | undefined {
+  try {
+    const urlToken = new URLSearchParams(window.location.search).get('ws_token');
+    const storedToken =
+      urlToken ??
+      window.sessionStorage.getItem('opentalk:ws_token') ??
+      window.localStorage.getItem('opentalk:ws_token');
+    if (storedToken && storedToken.trim()) {
+      return ['opentalk-v1', `opentalk-token.${storedToken.trim()}`];
+    }
+  } catch {
+    // Ignore storage access errors
+  }
+  return undefined;
+}
+
 export async function fetchBackendProviders(): Promise<BackendProvidersResponse | null> {
   try {
     const response = await fetch('/api/providers', {
@@ -244,7 +260,8 @@ export class CloudProxyAsrProvider implements AsrProvider {
       return;
     }
 
-    const ws = new WebSocket(getWebSocketUrl());
+    const protocols = getWebSocketProtocols();
+    const ws = protocols ? new WebSocket(getWebSocketUrl(), protocols) : new WebSocket(getWebSocketUrl());
     ws.binaryType = 'arraybuffer';
     this.socket = ws;
 

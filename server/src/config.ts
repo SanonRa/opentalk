@@ -20,6 +20,14 @@ function parseDefaultProvider(value: string | undefined): CloudProviderId | 'aut
   return 'auto';
 }
 
+function parseBoolean(value: string | undefined, fallback: boolean): boolean {
+  if (value === undefined) return fallback;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'true' || normalized === '1' || normalized === 'yes') return true;
+  if (normalized === 'false' || normalized === '0' || normalized === 'no') return false;
+  return fallback;
+}
+
 export interface ServerConfig {
   nodeEnv: string;
   port: number;
@@ -40,6 +48,8 @@ export interface ServerConfig {
   wsAuthToken: string;
   maxConcurrentSessions: number;
   maxSessionsPerIp: number;
+  trustProxy: boolean;
+  wsAllowNoOrigin: boolean;
 }
 
 export const config: ServerConfig = {
@@ -62,4 +72,6 @@ export const config: ServerConfig = {
   wsAuthToken: (process.env.WS_AUTH_TOKEN ?? '').trim(),
   maxConcurrentSessions: parsePositiveInt(process.env.MAX_CONCURRENT_SESSIONS, 10),
   maxSessionsPerIp: parsePositiveInt(process.env.MAX_SESSIONS_PER_IP, 3),
+  trustProxy: parseBoolean(process.env.TRUST_PROXY, false),
+  wsAllowNoOrigin: parseBoolean(process.env.WS_ALLOW_NO_ORIGIN, false),
 };
