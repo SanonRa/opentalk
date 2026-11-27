@@ -51,13 +51,15 @@ export function createInitialConversationState(
     connectionState: 'idle',
     activeProviderMode: providerMode,
     activeProviderLabel:
-      providerMode === 'browser-fallback'
-        ? 'Browser Speech Fallback'
-        : providerMode === 'cloud-sarvam'
-          ? 'Cloud Proxy — Sarvam AI'
-          : providerMode === 'cloud-deepgram'
-            ? 'Cloud Proxy — Deepgram'
-            : 'Cloud Proxy (Auto)',
+      providerMode === 'local-whisper'
+        ? 'Local ASR (On-Device Whisper)'
+        : providerMode === 'browser-fallback'
+          ? 'Browser Speech Fallback'
+          : providerMode === 'cloud-sarvam'
+            ? 'Cloud Proxy — Sarvam AI'
+            : providerMode === 'cloud-deepgram'
+              ? 'Cloud Proxy — Deepgram'
+              : 'Cloud Proxy (Auto)',
     language,
     livePartialCaption: '',
     messages: [],

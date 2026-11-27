@@ -1,12 +1,21 @@
 // Copyright (c) 2026. All rights reserved.
 
 import React from 'react';
-import { Cloud, CloudOff, Globe } from 'lucide-react';
+import { Cloud, CloudOff, Globe, Cpu } from 'lucide-react';
 import { useOpenTalk } from '../../engine/ConversationContext';
 
 export const ProviderStatusBadge: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
   const { settings, providerAvailabilities } = useOpenTalk();
   const active = providerAvailabilities.find((p) => p.mode === settings.asrProviderMode);
+
+  if (settings.asrProviderMode === 'local-whisper') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-900 dark:border-sky-700 dark:bg-sky-950/60 dark:text-sky-200">
+        <Cpu className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        <span>{compact ? 'Local Whisper' : 'Local ASR (100% On-Device, Offline)'}</span>
+      </span>
+    );
+  }
 
   if (settings.asrProviderMode === 'browser-fallback') {
     return (

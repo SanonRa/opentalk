@@ -1,6 +1,11 @@
 // Copyright (c) 2026. All rights reserved.
 
-export type AsrProviderMode = 'cloud-auto' | 'cloud-sarvam' | 'cloud-deepgram' | 'browser-fallback';
+export type AsrProviderMode =
+  | 'local-whisper'
+  | 'cloud-auto'
+  | 'cloud-sarvam'
+  | 'cloud-deepgram'
+  | 'browser-fallback';
 
 export type AsrConnectionState =
   | 'idle'
@@ -28,9 +33,29 @@ export interface AsrErrorEvent {
     | 'NETWORK_ERROR'
     | 'UPSTREAM_ERROR'
     | 'SESSION_LIMIT'
+    | 'MODEL_NOT_DOWNLOADED'
+    | 'INSUFFICIENT_MEMORY'
     | 'UNKNOWN';
   message: string;
   recoverable: boolean;
+}
+
+export interface LocalModelInfo {
+  id: string;
+  name: string;
+  sizeMb: number;
+  description: string;
+  languages: string[];
+  recommended?: boolean;
+}
+
+export interface LocalModelDownloadProgress {
+  modelId: string;
+  status: 'initiate' | 'download' | 'progress' | 'done' | 'ready';
+  file?: string;
+  progress?: number;
+  loaded?: number;
+  total?: number;
 }
 
 export interface AsrProviderAvailability {

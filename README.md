@@ -99,6 +99,7 @@ Only the backend reads API keys, and only when cloud ASR streaming is activated:
 
 ## Implemented Features (Phase 1)
 
+- **Phase 2 Local-First Speech Recognition**: Full on-device speech-to-text powered by `@huggingface/transformers` (Transformers.js v3) running quantized multilingual Whisper ONNX models in a dedicated Web Worker with `AudioWorkletNode` 16 kHz capture. 100% offline; zero audio sent to cloud servers.
 - **Provider-Independent ASR Abstraction** (`client/src/types/asr.ts`, `client/src/services/asr/`): supports `start`, `stop`, `pause`, `resume`, partial captions, final captions, connection state transitions, exponential backoff reconnection, and availability reporting.
 - **Secure Backend Streaming Proxy** (`server/src/`): Express + `ws` gateway implementing real WebSocket adapters for **Sarvam AI (Saaras v4)** and **Deepgram (Nova-3)** with zero raw-audio persistence on disk.
 - **Explicitly Labelled Browser Fallback** (`WebSpeechAsrProvider.ts`): Web Speech API adapter for Chromium-based prototyping when no cloud key is present.
